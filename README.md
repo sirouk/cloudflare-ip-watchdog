@@ -17,7 +17,7 @@ Node.js and npm (for PM2 installation)
 ## Installation
 
 Install system packages:
-```
+```bash
 sudo apt update
 
 # python3
@@ -28,31 +28,33 @@ sudo apt install jq npm -y
 
 # pm2 and make the process startup on reboot (careful, this restarts pm2 processes)
 npm install pm2@latest -g && pm2 update && pm2 save --force && pm2 startup && pm2 save
-
 ```
 
 Clone this repository:
-```
+```bash
 git clone https://github.com/yourusername/cloudflare-ip-monitor.git
 cd cloudflare-ip-monitor
 ```
+
 Install the required Python packages:
-```
+```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 deactivate;
 ```
+
 Install PM2 globally:
-```
+```bash
 npm install -g pm2
 ```
+
 
 ## Usage
 ### Running manually
 
 Run the script:
-```
+```bash
 python3 cf_ip_watchdog.py
 ```
 On the first run, you will be prompted to enter your Discord webhook URL. The script will validate the URL and save it to a `.env` file for future use.
@@ -60,35 +62,40 @@ On the first run, you will be prompted to enter your Discord webhook URL. The sc
 ### Running as a PM2 service
 
 Start the PM2 service:
-```
+```bash
 pm2 start "python3 cf_ip_watchdog.py" --name "cloudflare-ip-watchdog"
 pm2 save --force
 ```
+
 Set up PM2 Logrotate:
-```
-Install pm2-logrotate module
+```bash
+# Install pm2-logrotate module
 pm2 install pm2-logrotate
-Set maximum size of logs to 50M before rotation
+# Set maximum size of logs to 50M before rotation
 pm2 set pm2-logrotate:max_size 50M
-Retain 10 rotated log files
+# Retain 10 rotated log files
 pm2 set pm2-logrotate:retain 10
-Enable compression of rotated logs
+# Enable compression of rotated logs
 pm2 set pm2-logrotate:compress true
-Set rotation interval to every 6 hours
+# Set rotation interval to every 6 hours
 pm2 set pm2-logrotate:rotateInterval '00 */6 * * *'
 ```
+
 To view logs:
-```
+```bash
 pm2 logs cloudflare-ip-watchdog
 ```
+
 To stop the service:
-```
+```bash
 pm2 stop cloudflare-ip-watchdog
 ```
+
 To restart the service:
-```
+```bash
 pm2 restart cloudflare-ip-watchdog
 ```
+
 
 ## Configuration
 The script uses the following constants that you can modify in the code:
