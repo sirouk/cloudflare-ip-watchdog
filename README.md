@@ -7,11 +7,12 @@ Sends notifications through Discord webhooks
 Caches IP lists to efficiently detect changes
 Auto-updates from the GitHub repository (optional)
 Easy setup with interactive prompt for Discord webhook URL
+Can be run as a background service using PM2 with log rotation
 
 ## Requirements
 
 Python 3.6+
-Root privileges (the script needs to be run as root)
+Node.js and npm (for PM2 installation)
 
 ## Installation
 
@@ -22,18 +23,54 @@ cd cloudflare-ip-monitor
 ```
 Install the required Python packages:
 ```
-pip install requests python-dotenv pytz tzlocal
+pip install -r requirements.txt
+```
+Install PM2 globally:
+```
+npm install -g pm2
 ```
 
 ## Usage
+### Running manually
 
-Run the script with root privileges:
+Run the script:
 ```
-sudo python3 cloudflare_ip_monitor.py
+python3 cf_ip_watchdog.py
 ```
 On the first run, you will be prompted to enter your Discord webhook URL. The script will validate the URL and save it to a `.env` file for future use.
-The script will start monitoring Cloudflare IP ranges and send a test message to your Discord channel.
-Leave the script running to continue monitoring. It will check for IP changes at regular intervals and send notifications when changes are detected.
+
+### Running as a PM2 service
+
+Start the PM2 service:
+```
+pm2 start "python3 cf_ip_watchdog.py" --name "cloudflare-ip-watchdog"
+pm2 save --force
+```
+Set up PM2 Logrotate:
+```
+Install pm2-logrotate module
+pm2 install pm2-logrotate
+Set maximum size of logs to 50M before rotation
+pm2 set pm2-logrotate:max_size 50M
+Retain 10 rotated log files
+pm2 set pm2-logrotate:retain 10
+Enable compression of rotated logs
+pm2 set pm2-logrotate:compress true
+Set rotation interval to every 6 hours
+pm2 set pm2-logrotate:rotateInterval '00 */6 * * *'
+```
+To view logs:
+```
+pm2 logs cloudflare-ip-watchdog
+```
+To stop the service:
+```
+pm2 stop cloudflare-ip-watchdog
+```
+To restart the service:
+```
+pm2 restart cloudflare-ip-watchdog
+```
 
 ## Configuration
 The script uses the following constants that you can modify in the code:
