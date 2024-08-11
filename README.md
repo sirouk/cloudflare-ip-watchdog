@@ -1,13 +1,13 @@
 # Cloudflare IP Monitor
 This Python script monitors changes in Cloudflare's IPv4 and IPv6 address ranges and sends notifications via Discord webhook when changes are detected. It's designed to run continuously, checking for updates at regular intervals.
-## Features
 
-Monitors both IPv4 and IPv6 Cloudflare IP ranges
-Sends notifications through Discord webhooks
-Caches IP lists to efficiently detect changes
-Auto-updates from the GitHub repository (optional)
-Easy setup with interactive prompt for Discord webhook URL
-Can be run as a background service using PM2 with log rotation
+## Features
+- Monitors both IPv4 and IPv6 Cloudflare IP ranges
+- Sends notifications through Discord webhooks
+- Caches IP lists to efficiently detect changes
+- Auto-updates from the GitHub repository (optional)
+- Easy setup with interactive prompt for Discord webhook URL
+- Can be run as a background service using PM2 with log rotation
 
 ## Requirements
 
