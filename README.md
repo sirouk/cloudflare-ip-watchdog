@@ -19,7 +19,16 @@ Node.js and npm (for PM2 installation)
 Install system packages:
 ```
 sudo apt update
+
+# python3
 sudo apt install -y python3 python3-pip python3-venv
+
+# npm and things
+sudo apt install jq npm -y
+
+# pm2 and make the process startup on reboot (careful, this restarts pm2 processes)
+npm install pm2@latest -g && pm2 update && pm2 save --force && pm2 startup && pm2 save
+
 ```
 
 Clone this repository:
