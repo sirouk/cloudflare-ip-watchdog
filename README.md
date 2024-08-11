@@ -16,6 +16,12 @@ Node.js and npm (for PM2 installation)
 
 ## Installation
 
+Install system packages:
+```
+sudo apt update
+sudo apt install -y python3 python3-pip python3-venv
+```
+
 Clone this repository:
 ```
 git clone https://github.com/yourusername/cloudflare-ip-monitor.git
@@ -23,7 +29,10 @@ cd cloudflare-ip-monitor
 ```
 Install the required Python packages:
 ```
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
+deactivate;
 ```
 Install PM2 globally:
 ```
