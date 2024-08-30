@@ -108,33 +108,37 @@ def report_for_duty(message_topic, message_contents, webhook_url):
     commit_before_pull = get_latest_commit_hash()
     system_uptime = get_system_uptime()
 
-    if len(message_contents) > 2000:
-        # Post lengthy message to dpaste and get the link
-        dpaste_content = message_contents
-        dpaste_link = post_to_dpaste(dpaste_content)
-        message = f"# :saluting_face: _reporting for duty!_\n" + \
-                  f"**Host Name:** {host_name}\n" + \
-                  f"**Host IP:** {host_ip}\n" + \
-                  f"**Commit Hash:** {commit_before_pull}\n" + \
-                  f"**System Uptime:** {system_uptime}\n" + \
-                  f"**Clouflare IPv4 & IPv6 Details:**\n\n{dpaste_link}"
-    else:
-        message = f"# :saluting_face: _reporting for duty!_\n" + \
-                  f"**Host Name:** {host_name}\n" + \
-                  f"**Host IP:** {host_ip}\n" + \
-                  f"**Commit Hash:** {commit_before_pull}\n" + \
-                  f"**System Uptime:** {system_uptime}\n" + \
-                  f"**{message_topic} Details:**\n\n{message_contents}"
+    message = f"# :saluting_face: _reporting for duty!_\n" + \
+              f"**Host Name:** {host_name}\n" + \
+              f"**Host IP:** {host_ip}\n" + \
+              f"**Commit Hash:** {commit_before_pull}\n" + \
+              f"**System Uptime:** {system_uptime}\n" + \
+              f"**{message_topic} Details:**\n\n{message_contents}"
 
-    data = {
-        "content": message,
-        "username": host_ip
-    }
+    if len(message) > 2000:
+        # Post lengthy message to dpaste and get the link
+        dpaste_link = post_to_dpaste(message)
+        short_message = f"# :saluting_face: _reporting for duty!_\n" + \
+                        f"**Host Name:** {host_name}\n" + \
+                        f"**Host IP:** {host_ip}\n" + \
+                        f"**Commit Hash:** {commit_before_pull}\n" + \
+                        f"**System Uptime:** {system_uptime}\n" + \
+                        f"**{message_topic} Details:** [View full report]({dpaste_link})"
+        data = {
+            "content": short_message,
+            "username": host_ip
+        }
+    else:
+        data = {
+            "content": message,
+            "username": host_ip
+        }
+
     response = requests.post(webhook_url, json=data)
     if response.status_code == 204:
-        print("Message sent successfully")
+        print(f"[{datetime.datetime.now()}] Message sent successfully")
     else:
-        print(f"Failed to send message, status code: {response.status_code}")
+        print(f"[{datetime.datetime.now()}] Failed to send message, status code: {response.status_code}")
 
 
 def post_to_dpaste(content, lexer='python', expires='2592000', format='url'):
@@ -190,6 +194,10 @@ def fetch_cloudflare_ips(url):
         raise Exception(f"Failed to fetch IPs from {url}")
 
 
+def format_ip_list(ips):
+    return '\n'.join(ips)
+
+
 def calculate_hash(data):
     return hashlib.md5(json.dumps(data, sort_keys=True).encode()).hexdigest()
 
@@ -207,6 +215,7 @@ def save_cache(cache):
 
 
 def check_cloudflare_ips(webhook_url):
+    print(f"[{datetime.datetime.now()}] Starting Cloudflare IP check...")
     cache = load_cache()
     
     ipv4_ips = fetch_cloudflare_ips(CLOUDFLARE_IPV4_URL)
@@ -219,20 +228,41 @@ def check_cloudflare_ips(webhook_url):
     
     if ipv4_hash != cache['ipv4']['hash']:
         changes.append("IPv4")
+        old_ipv4 = set(cache['ipv4']['ips'])
+        new_ipv4 = set(ipv4_ips)
+        added_ipv4 = new_ipv4 - old_ipv4
+        removed_ipv4 = old_ipv4 - new_ipv4
         cache['ipv4']['ips'] = ipv4_ips
         cache['ipv4']['hash'] = ipv4_hash
     
     if ipv6_hash != cache['ipv6']['hash']:
         changes.append("IPv6")
+        old_ipv6 = set(cache['ipv6']['ips'])
+        new_ipv6 = set(ipv6_ips)
+        added_ipv6 = new_ipv6 - old_ipv6
+        removed_ipv6 = old_ipv6 - new_ipv6
         cache['ipv6']['ips'] = ipv6_ips
         cache['ipv6']['hash'] = ipv6_hash
     
     if changes:
         save_cache(cache)
-        message = f"Cloudflare IP changes detected for: {', '.join(changes)}\n\n"
-        message += f"IPv4 IPs:\n{', '.join(ipv4_ips)}\n\n"
-        message += f"IPv6 IPs:\n{', '.join(ipv6_ips)}"
+        message = f"{discord_mention_code} :stethoscope: Cloudflare IP changes detected for: {', '.join(changes)}\n\n"
+        if "IPv4" in changes:
+            message += f"IPv4 Changes:\n"
+            message += f"  Added: {', '.join(added_ipv4)}\n" if added_ipv4 else "  Added: None\n"
+            message += f"  Removed: {', '.join(removed_ipv4)}\n" if removed_ipv4 else "  Removed: None\n"
+            message += f"Current IPv4 IPs:\n{format_ip_list(ipv4_ips)}\n\n"
+        if "IPv6" in changes:
+            message += f"IPv6 Changes:\n"
+            message += f"  Added: {', '.join(added_ipv6)}\n" if added_ipv6 else "  Added: None\n"
+            message += f"  Removed: {', '.join(removed_ipv6)}\n" if removed_ipv6 else "  Removed: None\n"
+            message += f"Current IPv6 IPs:\n{', '.join(ipv6_ips)}\n\n"
         report_for_duty("Cloudflare IP Changes", message, webhook_url)
+        print(f"[{datetime.datetime.now()}] Cloudflare IP changes detected and reported.")
+    else:
+        print(f"[{datetime.datetime.now()}] No changes detected in Cloudflare IPs.")
+    
+    print(f"[{datetime.datetime.now()}] Cloudflare IP check completed.")
 
 
 
@@ -264,7 +294,12 @@ def main():
         exit(1)
 
     # Check in with admins
-    report_for_duty("Script Started", "Cloudflare IP monitor script has started.", webhook_url)
+    initial_message = f"Cloudflare IP monitor script has started.\n\n"
+    initial_ipv4 = fetch_cloudflare_ips(CLOUDFLARE_IPV4_URL)
+    initial_message += f"# Initial IPv4 IPs:\n{format_ip_list(initial_ipv4)}\n\n"
+    initial_ipv6 = fetch_cloudflare_ips(CLOUDFLARE_IPV6_URL)
+    initial_message += f"# Initial IPv6 IPs:\n{format_ip_list(initial_ipv6)}"
+    report_for_duty("Script Started", initial_message, webhook_url)
     
 
     # Commands for system setup commented out for brevity
@@ -276,8 +311,7 @@ def main():
             if time.time() - watchdog_liveness >= watchdog_interval:
 
                 # Uptime liveness check
-                check_cloudflare_ips(cloudflare_ipv4)
-                check_cloudflare_ips(cloudflare_ipv6)
+                check_cloudflare_ips(webhook_url)
 
                 watchdog_liveness = time.time()
 
